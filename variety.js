@@ -12,17 +12,18 @@ Released by Maypop Inc, © 2012–2023, under the MIT License. */
 (function () {
   'use strict'; // wraps everything for which we can use strict mode -JC
 
-  var log = function(message) {
-    if(!__quiet) { // mongo shell param, coming from https://github.com/mongodb/mongo/blob/5fc306543cd3ba2637e5cb0662cc375f36868b28/src/mongo/shell/dbshell.cpp#L624
-      print(message);
-    }
-  };
+  // var log = function(message) {
+  //   if(!__quiet) { // mongo shell param, coming from https://github.com/mongodb/mongo/blob/5fc306543cd3ba2637e5cb0662cc375f36868b28/src/mongo/shell/dbshell.cpp#L624
+  //     print(message);
+  //   }
+  // };
 
-  log('Variety: A MongoDB Schema Analyzer');
-  log('Version 1.5.1, released 02 October 2017');
+  console.log('Variety: A MongoDB Schema Analyzer');
+  console.log('Version 1.5.1, released 02 October 2017');
 
   var dbs = [];
   var emptyDbs = [];
+  var uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
 
   if (typeof slaveOk !== 'undefined') {
     if (slaveOk === true) {
@@ -30,27 +31,27 @@ Released by Maypop Inc, © 2012–2023, under the MIT License. */
     }
   }
 
-  var knownDatabases = db.adminCommand('listDatabases').databases;
-  if(typeof knownDatabases !== 'undefined') { // not authorized user receives error response (json) without databases key
-    knownDatabases.forEach(function(d){
-      if(db.getSisterDB(d.name).getCollectionNames().length > 0) {
-        dbs.push(d.name);
-      }
-      if(db.getSisterDB(d.name).getCollectionNames().length === 0) {
-        emptyDbs.push(d.name);
-      }
-    });
+  // var knownDatabases = db.adminCommand('listDatabases').databases;
+  // if(typeof knownDatabases !== 'undefined') { // not authorized user receives error response (json) without databases key
+  //   knownDatabases.forEach(function(d){
+  //     if(db.getSisterDB(d.name).getCollectionNames().length > 0) {
+  //       dbs.push(d.name);
+  //     }
+  //     if(db.getSisterDB(d.name).getCollectionNames().length === 0) {
+  //       emptyDbs.push(d.name);
+  //     }
+  //   });
 
-    if (emptyDbs.indexOf(db.getName()) !== -1) {
-      throw 'The database specified ('+ db +') is empty.\n'+
-          'Possible database options are: ' + dbs.join(', ') + '.';
-    }
+  //   if (emptyDbs.indexOf(db.getName()) !== -1) {
+  //     throw 'The database specified ('+ db +') is empty.\n'+
+  //         'Possible database options are: ' + dbs.join(', ') + '.';
+  //   }
 
-    if (dbs.indexOf(db.getName()) === -1) {
-      throw 'The database specified ('+ db +') does not exist.\n'+
-          'Possible database options are: ' + dbs.join(', ') + '.';
-    }
-  }
+  //   if (dbs.indexOf(db.getName()) === -1) {
+  //     throw 'The database specified ('+ db +') does not exist.\n'+
+  //         'Possible database options are: ' + dbs.join(', ') + '.';
+  //   }
+  // }
 
   var collNames = db.getCollectionNames().join(', ');
   if (typeof collection === 'undefined') {
@@ -69,13 +70,14 @@ Released by Maypop Inc, © 2012–2023, under the MIT License. */
     var read = function(name, defaultValue) {
       var value = typeof configProvider[name] !== 'undefined' ? configProvider[name] : defaultValue;
       config[name] = value;
-      log('Using '+name+' of ' + tojson(value));
+      console.log('Using '+name+' of ' + JSON.stringify(value));
     };
     read('collection', null);
     read('query', {});
     read('limit', db.getCollection(config.collection).find(config.query).count());
     read('maxDepth', 99);
     read('sort', {_id: -1});
+    read('resultSort', 'key');
     read('outputFormat', 'ascii');
     read('persistResults', false);
     read('resultsDatabase', 'varietyResults');
@@ -95,50 +97,50 @@ Released by Maypop Inc, © 2012–2023, under the MIT License. */
 
   var config = readConfig(this);
 
-  var PluginsClass = function(context) {
-    var parsePath = function(val) { return val.slice(-3) !== '.js' ? val + '.js' : val;};
-    var parseConfig = function(val) {
-      var config = {};
-      val.split('&').reduce(function(acc, val) {
-        var parts = val.split('=');
-        acc[parts[0]] = parts[1];
-        return acc;
-      }, config);
-      return config;
-    };
+  // var PluginsClass = function(context) {
+  //   var parsePath = function(val) { return val.slice(-3) !== '.js' ? val + '.js' : val;};
+  //   var parseConfig = function(val) {
+  //     var config = {};
+  //     val.split('&').reduce(function(acc, val) {
+  //       var parts = val.split('=');
+  //       acc[parts[0]] = parts[1];
+  //       return acc;
+  //     }, config);
+  //     return config;
+  //   };
 
-    if(typeof context.plugins !== 'undefined') {
-      this.plugins = context.plugins.split(',')
-      .map(function(path){return path.trim();})
-      .map(function(definition){
-        var path = parsePath(definition.split('|')[0]);
-        var config = parseConfig(definition.split('|')[1] || '');
-        context.module = context.module || {};
-        load(path);
-        var plugin = context.module.exports;
-        plugin.path = path;
-        if(typeof plugin.init === 'function') {
-          plugin.init(config);
-        }
-        return plugin;
-      }, this);
-    } else {
-      this.plugins = [];
-    }
+  //   if(typeof context.plugins !== 'undefined') {
+  //     this.plugins = context.plugins.split(',')
+  //     .map(function(path){return path.trim();})
+  //     .map(function(definition){
+  //       var path = parsePath(definition.split('|')[0]);
+  //       var config = parseConfig(definition.split('|')[1] || '');
+  //       context.module = context.module || {};
+  //       load(path);
+  //       var plugin = context.module.exports;
+  //       plugin.path = path;
+  //       if(typeof plugin.init === 'function') {
+  //         plugin.init(config);
+  //       }
+  //       return plugin;
+  //     }, this);
+  //   } else {
+  //     this.plugins = [];
+  //   }
 
-    this.execute = function(methodName) {
-      var args = Array.prototype.slice.call(arguments, 1);
-      var applicablePlugins = this.plugins.filter(function(plugin){return typeof plugin[methodName] === 'function';});
-      return applicablePlugins.map(function(plugin) {
-        return plugin[methodName].apply(plugin, args);
-      });
-    };
+  //   this.execute = function(methodName) {
+  //     var args = Array.prototype.slice.call(arguments, 1);
+  //     var applicablePlugins = this.plugins.filter(function(plugin){return typeof plugin[methodName] === 'function';});
+  //     return applicablePlugins.map(function(plugin) {
+  //       return plugin[methodName].apply(plugin, args);
+  //     });
+  //   };
 
-    log('Using plugins of ' + tojson(this.plugins.map(function(plugin){return plugin.path;})));
-  };
+  //   log('Using plugins of ' + JSON.stringify(this.plugins.map(function(plugin){return plugin.path;})));
+  // };
 
-  var $plugins = new PluginsClass(this);
-  $plugins.execute('onConfig', config);
+  // var $plugins = new PluginsClass(this);
+  // $plugins.execute('onConfig', config);
 
   var varietyTypeOf = function(thing) {
     if (!arguments.length) { throw 'varietyTypeOf() requires an argument'; }
@@ -205,8 +207,10 @@ Released by Maypop Inc, © 2012–2023, under the MIT License. */
           continue;
         }
         var value = document[key];
-        if(Array.isArray(document))
+
+        if(Array.isArray(document) || uuidRegex.test(key))
           key = config.arrayEscape + key + config.arrayEscape; //translate unnamed object key from {_parent_name_}.{_index_} to {_parent_name_}.arrayEscape{_index_}arrayEscape.
+
         result[parentKey+key] = value;
         //it's an object, recurse...only if we haven't reached max depth
         if(isHash(value) && maxDepth > 1) {
@@ -221,7 +225,9 @@ Released by Maypop Inc, © 2012–2023, under the MIT License. */
   // convert document to key-value map, where value is always an array with types as plain strings
   var analyseDocument = function(document) {
     var result = {};
-    var arrayRegex = new RegExp('\\.' + config.arrayEscape + '\\d+' + config.arrayEscape, 'g');
+    var uuidRegexSource = uuidRegex.source.replace('^', '').replace('$', '');
+    var arrayRegex = new RegExp('\\.' + config.arrayEscape + '(\\d+|' + uuidRegexSource + ')' + config.arrayEscape, 'g');
+
     for (var key in document) {
       var value = document[key];
       key = key.replace(arrayRegex, '.' + config.arrayEscape);
@@ -260,7 +266,7 @@ Released by Maypop Inc, © 2012–2023, under the MIT License. */
           } else {
             existing.types[type] = 1;
             if (config.logKeysContinuously) {
-              log('Found new key type "' + key + '" type "' + type + '"');
+              console.log('Found new key type "' + key + '" type "' + type + '"');
             }
           }
         }
@@ -272,7 +278,7 @@ Released by Maypop Inc, © 2012–2023, under the MIT License. */
           types[newType] = 1;
           lastValue = docResult[key][newType];
           if (config.logKeysContinuously) {
-            log('Found new key type "' + key + '" type "' + newType + '"');
+            console.log('Found new key type "' + key + '" type "' + newType + '"');
           }
         }
         interimResults[key] = {'types': types,'totalOccurrences':1};
@@ -314,9 +320,13 @@ Released by Maypop Inc, © 2012–2023, under the MIT License. */
   };
 
   // Merge the keys and types of current object into accumulator object
+  var processedDocuments = 0;
   var reduceDocuments = function(accumulator, object) {
     var docResult = analyseDocument(serializeDoc(object, config.maxDepth, config.excludeSubkeys));
     mergeDocument(docResult, accumulator);
+
+    ++processedDocuments;
+    if (processedDocuments % 1000 === 0) console.log(`Processed documents: ${processedDocuments}`);
     return accumulator;
   };
 
@@ -329,21 +339,26 @@ Released by Maypop Inc, © 2012–2023, under the MIT License. */
 
 // sort desc by totalOccurrences or by key asc if occurrences equal
   var comparator = function(a, b) {
-    var countsDiff = b.totalOccurrences - a.totalOccurrences;
-    return countsDiff !== 0 ? countsDiff : a._id.key.localeCompare(b._id.key);
+    const keyResult = a._id.key.localeCompare(b._id.key);
+    if (config.resultSort === 'key') return keyResult;
+
+    const countsDiff = b.totalOccurrences - a.totalOccurrences;
+    return countsDiff !== 0 ? countsDiff : keyResult;
   };
 
   // extend standard MongoDB cursor of reduce method - call forEach and combine the results
-  DBQuery.prototype.reduce = function(callback, initialValue) {
-    var result = initialValue;
-    this.forEach(function(obj){
-      result = callback(result, obj);
-    });
-    return result;
-  };
+  // DBQuery.prototype.reduce = function(callback, initialValue) {
+  //   var result = initialValue;
+  //   this.forEach(function(obj){
+  //     result = callback(result, obj);
+  //   });
+  //   return result;
+  // };
 
   var cursor = db.getCollection(config.collection).find(config.query).sort(config.sort).limit(config.limit);
-  var interimResults = cursor.reduce(reduceDocuments, {});
+  // var interimResults = cursor.reduce(reduceDocuments, {});
+  var interimResults = {};
+  cursor.forEach((value) => reduceDocuments(interimResults, value));
   var varietyResults = convertResults(interimResults, cursor.size())
   .filter(filter)
   .sort(comparator);
@@ -365,7 +380,7 @@ Released by Maypop Inc, © 2012–2023, under the MIT License. */
     }
 
     // replace results collection
-    log('replacing results collection: '+ resultsCollectionName);
+    console.log('replacing results collection: '+ resultsCollectionName);
     resultsDB.getCollection(resultsCollectionName).drop();
     resultsDB.getCollection(resultsCollectionName).insert(varietyResults);
   }
@@ -412,10 +427,10 @@ Released by Maypop Inc, © 2012–2023, under the MIT License. */
     return [border].concat(table).concat(border).join('\n');
   };
 
-  var pluginsOutput = $plugins.execute('formatResults', varietyResults);
-  if (pluginsOutput.length > 0) {
-    pluginsOutput.forEach(function(i){print(i);});
-  } else if(config.outputFormat === 'json') {
+  // var pluginsOutput = $plugins.execute('formatResults', varietyResults);
+  // if (pluginsOutput.length > 0) {
+  //   pluginsOutput.forEach(function(i){print(i);});
+  /*} else*/ if(config.outputFormat === 'json') {
     printjson(varietyResults); // valid formatted json output, compressed variant is printjsononeline()
   } else {
     print(createAsciiTable(varietyResults)); // output nice ascii table with results
